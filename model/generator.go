@@ -4,10 +4,6 @@ import (
 	"time"
 )
 
-const (
-	GEN_STA_ORIGIN uint32 = 0
-)
-
 type LDResult struct {
 	ID     int64
 	Req    *RawReq

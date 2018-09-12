@@ -4,6 +4,14 @@ import (
 	"tinywell/loadgen/model"
 )
 
+const (
+	GEN_STA_ORIGIN   uint32 = 0
+	GEN_STA_STARTING uint32 = 1
+	GEN_STA_STARTED  uint32 = 2
+	GEN_STA_STOPPING uint32 = 3
+	GEN_STA_STOPPED  uint32 = 4
+)
+
 // Generator 载荷发生器接口
 type Generator interface {
 	Start() bool

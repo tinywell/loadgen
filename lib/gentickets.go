@@ -11,8 +11,8 @@ type GenTickets struct {
 	total  int32
 }
 
-// NewTicket 生成新的票池并进行初始化
-func NewTicket(capacity int32) (Tickets, error) {
+// NewTickets 生成新的票池并进行初始化
+func NewTickets(capacity int32) (Tickets, error) {
 	if capacity <= 0 {
 		err := fmt.Errorf("want capacity >0,actuly %d", capacity)
 		return nil, err
