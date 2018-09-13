@@ -2,6 +2,7 @@ package lib
 
 import (
 	"fmt"
+	"tinywell/loadgen/model"
 )
 
 // GenTickets 载荷发生器票池
@@ -12,7 +13,7 @@ type GenTickets struct {
 }
 
 // NewTickets 生成新的票池并进行初始化
-func NewTickets(capacity int32) (Tickets, error) {
+func NewTickets(capacity int32) (model.Tickets, error) {
 	if capacity <= 0 {
 		err := fmt.Errorf("want capacity >0,actuly %d", capacity)
 		return nil, err

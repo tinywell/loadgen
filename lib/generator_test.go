@@ -2,10 +2,11 @@ package lib
 
 import (
 	"testing"
+	"tinywell/loadgen/model"
 )
 
 func TestInterface(t *testing.T) {
 	var mgen *myGenerator
-	var gen Generator = mgen
+	var gen model.Generator = mgen
 	gen.Start()
 }

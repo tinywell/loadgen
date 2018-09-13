@@ -9,18 +9,18 @@ import (
 )
 
 type ParamSet struct {
-	caller     Caller
-	tickets    Tickets
-	lps        uint32
-	timeoutNS  time.Duration
-	durationNS time.Duration
-	resultChan chan *model.LDResult
+	Caller     model.Caller
+	Tickets    model.Tickets
+	Lps        uint32
+	TimeoutNS  time.Duration
+	DurationNS time.Duration
+	ResultChan chan *model.LDResult
 }
 
 // myGenerator 载荷发生器实现
 type myGenerator struct {
-	caller      Caller
-	tickets     Tickets
+	caller      model.Caller
+	tickets     model.Tickets
 	ctx         context.Context
 	cancelFunc  context.CancelFunc
 	resultChan  chan *model.LDResult
@@ -31,15 +31,15 @@ type myGenerator struct {
 	status      uint32
 }
 
-func NewGenerator(param ParamSet) Generator {
+func NewGenerator(param ParamSet) model.Generator {
 	gen := &myGenerator{
-		caller:     param.caller,
-		tickets:    param.tickets,
-		resultChan: param.resultChan,
-		status:     GEN_STA_ORIGIN,
-		lps:        param.lps,
-		timeoutNS:  param.timeoutNS,
-		durationNS: param.durationNS,
+		caller:     param.Caller,
+		tickets:    param.Tickets,
+		resultChan: param.ResultChan,
+		status:     model.GEN_STA_ORIGIN,
+		lps:        param.Lps,
+		timeoutNS:  param.TimeoutNS,
+		durationNS: param.DurationNS,
 	}
 	return gen
 }
@@ -59,8 +59,9 @@ func (gen *myGenerator) init() error {
 }
 
 func (gen *myGenerator) Start() bool {
-	fmt.Println("starting generator")
-	if ok := atomic.CompareAndSwapUint32(&gen.status, GEN_STA_ORIGIN, GEN_STA_STARTING); !ok {
+	fmt.Println("=== generator starting ===")
+	if ok := atomic.CompareAndSwapUint32(&gen.status,
+		model.GEN_STA_ORIGIN, model.GEN_STA_STARTING); !ok {
 		return false
 	}
 
@@ -82,9 +83,11 @@ func (gen *myGenerator) Start() bool {
 		gen.genLoad(throttle)
 	}()
 
-	if ok := atomic.CompareAndSwapUint32(&gen.status, GEN_STA_STARTING, GEN_STA_STARTED); !ok {
+	if ok := atomic.CompareAndSwapUint32(&gen.status,
+		model.GEN_STA_STARTING, model.GEN_STA_STARTED); !ok {
 		return false
 	}
+	fmt.Println("=== generator started ===")
 	return true
 }
 
@@ -92,15 +95,16 @@ func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 	for {
 		select {
 		case <-gen.ctx.Done():
-			gen.Stop()
+			gen.prepareToStop()
 			return
 		default:
 		}
-		gen.asyncCall()
+		go gen.asyncCall()
 		select {
 		case <-throttle:
+			// fmt.Println(" === !!!NEXT!!! ===")
 		case <-gen.ctx.Done():
-			gen.Stop()
+			gen.prepareToStop()
 			return
 		}
 	}
@@ -108,8 +112,12 @@ func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 
 // 发起一次调用
 func (gen *myGenerator) asyncCall() {
+	gen.tickets.Tack()
+	defer gen.tickets.Return()
+	start := time.Now()
 	req := gen.caller.BuildReq()
-	resp, err := gen.caller.Call(req.ReqBody)
+	resp, err := gen.caller.Call(req)
+	elp := time.Since(start)
 	if err != nil {
 		res := &model.LDResult{
 			ID:  req.ID,
@@ -117,23 +125,46 @@ func (gen *myGenerator) asyncCall() {
 			Rsp: &model.RawRsp{
 				ID:      req.ID,
 				RspBody: resp,
-				Code:    GEN_RTNCODE_INTERERR,
+				Code:    model.GEN_RTNCODE_INTERERR,
 				Err:     err,
 			},
+			Elapse: elp,
 		}
 		gen.resultChan <- res
 		return
 	}
-	res := gen.caller.CheckRsp(resp)
-	gen.resultChan <- res
+	res := gen.caller.CheckRsp(req, resp)
+	res.Elapse = elp
+	// gen.resultChan <- res
+	gen.sendResult(res)
+}
+
+func (gen *myGenerator) sendResult(res *model.LDResult) {
+	if gen.status == model.GEN_STA_STARTED {
+		gen.resultChan <- res
+	} else {
+		fmt.Println("ignore res:", res)
+	}
+
 }
 
 func (gen *myGenerator) Stop() bool {
+	fmt.Println("=== generator stopping ===")
+	gen.cancelFunc()
+	// close(gen.resultChan)
 	return true
 }
 
 func (gen *myGenerator) prepareToStop() {
-
+	fmt.Println("=== generator prepareToStop ===")
+	if ok := atomic.CompareAndSwapUint32(&gen.status,
+		model.GEN_STA_STARTED, model.GEN_STA_STOPPING); !ok {
+		fmt.Println(" Swap status from GEN_STA_STARTED to GEN_STA_STOPPING error")
+	}
+	close(gen.resultChan)
+	atomic.CompareAndSwapUint32(&gen.status,
+		model.GEN_STA_STOPPING, model.GEN_STA_STOPPED)
+	fmt.Println("=== generator stopped ===")
 }
 
 func (gen *myGenerator) Status() uint32 {

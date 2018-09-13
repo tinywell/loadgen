@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -21,7 +22,8 @@ func (caller *MockCaller) BuildReq() *model.RawReq {
 	}
 }
 
-func (caller *MockCaller) Call(req []byte) ([]byte, error) {
+func (caller *MockCaller) Call(req *model.RawReq) ([]byte, error) {
+	fmt.Println("== call id:", req.ID, " ===")
 	rsp, err := http.Get("http://www.baidu.com")
 	if err != nil {
 		return nil, err
