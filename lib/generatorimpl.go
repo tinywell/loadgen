@@ -29,6 +29,7 @@ type myGenerator struct {
 	durationNS  time.Duration
 	timeoutNS   time.Duration
 	status      uint32
+	stopChan    chan struct{}
 }
 
 func NewGenerator(param ParamSet) model.Generator {
@@ -40,6 +41,7 @@ func NewGenerator(param ParamSet) model.Generator {
 		lps:        param.Lps,
 		timeoutNS:  param.TimeoutNS,
 		durationNS: param.DurationNS,
+		stopChan:   make(chan struct{}),
 	}
 	return gen
 }
@@ -140,31 +142,44 @@ func (gen *myGenerator) asyncCall() {
 }
 
 func (gen *myGenerator) sendResult(res *model.LDResult) {
-	if gen.status == model.GEN_STA_STARTED {
-		gen.resultChan <- res
-	} else {
-		fmt.Println("ignore res:", res)
+	fmt.Println("send result:", res.ID)
+	// if gen.status == model.GEN_STA_STARTED {
+	for {
+		select {
+		case <-gen.stopChan:
+		case gen.resultChan <- res:
+		}
 	}
-
+	// } else {
+	// 	fmt.Println("generator stopped, ignore res:", res)
+	// }
 }
 
 func (gen *myGenerator) Stop() bool {
 	fmt.Println("=== generator stopping ===")
-	gen.cancelFunc()
-	// close(gen.resultChan)
-	return true
+	if ok := atomic.CompareAndSwapUint32(&gen.status,
+		model.GEN_STA_STARTED, model.GEN_STA_STOPPING); !ok {
+		fmt.Println(" Swap status from GEN_STA_STARTED to GEN_STA_STOPPING error")
+		return false
+	}
+	gen.cancelFunc() // 会触发 ctx.Done
+	for {
+		if gen.status == model.GEN_STA_STOPPED {
+			fmt.Println("=== generator stopped,End Stop ===")
+			return true
+		}
+		time.Sleep(time.Second)
+	}
 }
 
 func (gen *myGenerator) prepareToStop() {
 	fmt.Println("=== generator prepareToStop ===")
-	if ok := atomic.CompareAndSwapUint32(&gen.status,
-		model.GEN_STA_STARTED, model.GEN_STA_STOPPING); !ok {
-		fmt.Println(" Swap status from GEN_STA_STARTED to GEN_STA_STOPPING error")
-	}
-	close(gen.resultChan)
+	atomic.CompareAndSwapUint32(&gen.status, model.GEN_STA_STARTED, model.GEN_STA_STOPPING)
+	// close(gen.resultChan)
+	close(gen.stopChan) // 通知中间信号通道
 	atomic.CompareAndSwapUint32(&gen.status,
 		model.GEN_STA_STOPPING, model.GEN_STA_STOPPED)
-	fmt.Println("=== generator stopped ===")
+	fmt.Println("=== generator stopped:", gen.status, " ===")
 }
 
 func (gen *myGenerator) Status() uint32 {

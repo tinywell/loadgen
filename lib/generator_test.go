@@ -10,3 +10,7 @@ func TestInterface(t *testing.T) {
 	var gen model.Generator = mgen
 	gen.Start()
 }
+
+func TestStop(t *testing.T) {
+
+}
