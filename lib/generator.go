@@ -10,6 +10,9 @@ const (
 	GEN_STA_STARTED  uint32 = 2
 	GEN_STA_STOPPING uint32 = 3
 	GEN_STA_STOPPED  uint32 = 4
+
+	GEN_RTNCODE_SUCCESS  = 0
+	GEN_RTNCODE_INTERERR = 1000
 )
 
 // Generator 载荷发生器接口

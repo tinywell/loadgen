@@ -93,6 +93,7 @@ func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 		select {
 		case <-gen.ctx.Done():
 			gen.Stop()
+			return
 		default:
 		}
 		gen.asyncCall()
@@ -100,13 +101,31 @@ func (gen *myGenerator) genLoad(throttle <-chan time.Time) {
 		case <-throttle:
 		case <-gen.ctx.Done():
 			gen.Stop()
+			return
 		}
 	}
 }
 
 // 发起一次调用
 func (gen *myGenerator) asyncCall() {
-
+	req := gen.caller.BuildReq()
+	resp, err := gen.caller.Call(req.ReqBody)
+	if err != nil {
+		res := &model.LDResult{
+			ID:  req.ID,
+			Req: req,
+			Rsp: &model.RawRsp{
+				ID:      req.ID,
+				RspBody: resp,
+				Code:    GEN_RTNCODE_INTERERR,
+				Err:     err,
+			},
+		}
+		gen.resultChan <- res
+		return
+	}
+	res := gen.caller.CheckRsp(resp)
+	gen.resultChan <- res
 }
 
 func (gen *myGenerator) Stop() bool {
