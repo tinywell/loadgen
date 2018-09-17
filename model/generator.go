@@ -1,5 +1,7 @@
 package model
 
+type GenStatus uint32
+
 const (
 	GEN_STA_ORIGIN   uint32 = 0
 	GEN_STA_STARTING uint32 = 1
@@ -10,6 +12,14 @@ const (
 	GEN_RTNCODE_SUCCESS  = 0
 	GEN_RTNCODE_INTERERR = 1000
 )
+
+var Status_GenMap = map[uint32]string{
+	0: "ORIGIN",
+	1: "STARTING",
+	2: "STAETED",
+	3: "STOPPING",
+	4: "STOPPED",
+}
 
 // Generator 载荷发生器接口
 type Generator interface {

@@ -14,15 +14,22 @@ func main() {
 	set := lib.ParamSet{
 		Caller:     caller,
 		Tickets:    tickets,
-		Lps:        10,
+		Lps:        200,
 		TimeoutNS:  time.Second * 2,
 		DurationNS: time.Second * 10,
-		ResultChan: make(chan *model.LDResult),
+		ResultChan: make(chan *model.LDResult, 10),
 	}
 	gen := lib.NewGenerator(set)
 	if ok := gen.Start(); ok {
 		fmt.Println("ok")
 	}
-	time.Sleep(time.Second * 2)
-	gen.Stop()
+	readRes(set.ResultChan)
+	// time.Sleep(time.Second * 1)
+	// gen.Stop()
+}
+
+func readRes(resChan chan *model.LDResult) {
+	for res := range resChan {
+		fmt.Println(res.ID, ":", res)
+	}
 }

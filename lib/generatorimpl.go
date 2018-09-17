@@ -138,21 +138,26 @@ func (gen *myGenerator) asyncCall() {
 	res := gen.caller.CheckRsp(req, resp)
 	res.Elapse = elp
 	// gen.resultChan <- res
-	gen.sendResult(res)
+	go gen.sendResult(res)
 }
 
 func (gen *myGenerator) sendResult(res *model.LDResult) {
-	fmt.Println("send result:", res.ID)
-	// if gen.status == model.GEN_STA_STARTED {
-	for {
-		select {
-		case <-gen.stopChan:
-		case gen.resultChan <- res:
-		}
+	fmt.Println("1 send result:", res.ID)
+	if gen.status == model.GEN_STA_STARTED {
+		// select {
+		// case <-gen.stopChan:
+		// 	// close(gen.resultChan)
+		// 	fmt.Println("result channel stopped,return")
+		// 	// return
+		// case gen.resultChan <- res:
+		// 	fmt.Println("2 send result:", res.ID)
+		// 	// return
+		// }
+		gen.resultChan <- res
+		fmt.Println("2 send result:", res.ID)
+	} else {
+		fmt.Println("generator stopped, ignore res:", res)
 	}
-	// } else {
-	// 	fmt.Println("generator stopped, ignore res:", res)
-	// }
 }
 
 func (gen *myGenerator) Stop() bool {
@@ -175,8 +180,8 @@ func (gen *myGenerator) Stop() bool {
 func (gen *myGenerator) prepareToStop() {
 	fmt.Println("=== generator prepareToStop ===")
 	atomic.CompareAndSwapUint32(&gen.status, model.GEN_STA_STARTED, model.GEN_STA_STOPPING)
-	// close(gen.resultChan)
-	close(gen.stopChan) // 通知中间信号通道
+	close(gen.resultChan)
+	// close(gen.stopChan) // 通知中间信号通道
 	atomic.CompareAndSwapUint32(&gen.status,
 		model.GEN_STA_STOPPING, model.GEN_STA_STOPPED)
 	fmt.Println("=== generator stopped:", gen.status, " ===")

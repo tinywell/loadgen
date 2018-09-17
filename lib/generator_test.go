@@ -14,3 +14,10 @@ func TestInterface(t *testing.T) {
 func TestStop(t *testing.T) {
 
 }
+
+func TestStatus(t *testing.T) {
+	var mgen *myGenerator
+	var gen model.Generator = mgen
+	sta := gen.Status()
+	t.Log(sta)
+}
