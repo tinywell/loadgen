@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"sync/atomic"
 	"time"
-	"tinywell/loadgen/model"
+
+	"github.com/tinywell/loadgen/model"
 )
 
 type ParamSet struct {

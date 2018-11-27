@@ -2,7 +2,8 @@ package lib
 
 import (
 	"fmt"
-	"tinywell/loadgen/model"
+
+	"github.com/tinywell/loadgen/model"
 )
 
 // GenTickets 载荷发生器票池

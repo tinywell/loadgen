@@ -5,7 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-	"tinywell/loadgen/model"
+
+	"github.com/tinywell/loadgen/model"
 )
 
 type MockCaller struct {

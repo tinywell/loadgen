@@ -3,9 +3,10 @@ package main
 import (
 	"fmt"
 	"time"
-	"tinywell/loadgen/lib"
-	"tinywell/loadgen/mock"
-	"tinywell/loadgen/model"
+
+	"github.com/tinywell/loadgen/lib"
+	"github.com/tinywell/loadgen/mock"
+	"github.com/tinywell/loadgen/model"
 )
 
 func main() {

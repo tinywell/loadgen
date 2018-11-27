@@ -2,7 +2,8 @@ package lib
 
 import (
 	"testing"
-	"tinywell/loadgen/model"
+
+	"github.com/tinywell/loadgen/model"
 )
 
 func TestInterface(t *testing.T) {
